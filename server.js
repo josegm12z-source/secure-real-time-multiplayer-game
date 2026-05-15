@@ -6,7 +6,6 @@ const socketIO = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
 const http = require('http');
-
 const fccTestingRoutes = require('./routes/fcctesting.js');
 const runner = require('./test-runner.js');
 
@@ -14,15 +13,19 @@ const app = express();
 
 app.use(helmet.noSniff());
 app.use(helmet.xssFilter());
-app.use(helmet.noCache());
 app.use(helmet.hidePoweredBy({ setTo: 'PHP 7.4.3' }));
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Surrogate-Control', 'no-store');
+  res.setHeader('Expires', '0');
+  next();
+});
 
 app.use('/public', express.static(process.cwd() + '/public'));
 app.use('/assets', express.static(process.cwd() + '/assets'));
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
 app.use(cors({ origin: '*' }));
 
 app.route('/')
@@ -37,7 +40,6 @@ app.use(function (req, res, next) {
 });
 
 const portNum = process.env.PORT || 3000;
-
 const server = http.createServer(app);
 const io = socketIO(server);
 
@@ -45,7 +47,6 @@ const CANVAS_WIDTH = 640;
 const CANVAS_HEIGHT = 480;
 const PLAYER_SIZE = 20;
 const COLLECTIBLE_SIZE = 15;
-
 const players = {};
 
 function randomPos(max, size) {
@@ -81,7 +82,6 @@ io.on('connection', (socket) => {
     players: Object.values(players),
     collectible
   });
-
   socket.broadcast.emit('updatePlayers', Object.values(players));
 
   socket.on('move', (data) => {
